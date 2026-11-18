@@ -6,6 +6,6 @@ public class GoldTierRule implements TierRule {
 
     @Override
     public int calculateTierPoints(int basePoints) {
-        return basePoints * MULTIPLIER;
+        return Math.multiplyExact(basePoints, MULTIPLIER);
     }
 }

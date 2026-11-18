@@ -10,7 +10,7 @@ class StandardTierRuleTest {
     private final StandardTierRule rule = new StandardTierRule();
 
     @ParameterizedTest(name = "{0} base points stay {0}")
-    @ValueSource(ints = {0, 1, 25})
+    @ValueSource(ints = {0, 1, 25, 1_000_000, Integer.MAX_VALUE})
     void keepsBasePointsUnchanged(int basePoints) {
         assertEquals(basePoints, rule.calculateTierPoints(basePoints));
     }

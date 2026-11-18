@@ -32,7 +32,7 @@ public class PointsCalculator {
         Member member = findMember(memberId);
         int tierPoints = tierRules.ruleFor(member.tier())
                 .calculateTierPoints(basePointsFor(amount));
-        return tierPoints + spendBonus.calculateBonusPoints(amount);
+        return Math.addExact(tierPoints, spendBonus.calculateBonusPoints(amount));
     }
 
     private void validateAmount(BigDecimal amount) {
