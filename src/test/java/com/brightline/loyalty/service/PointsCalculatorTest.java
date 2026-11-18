@@ -39,15 +39,17 @@ class PointsCalculatorTest {
     @Mock
     private MemberRepository repository;
 
+    private final TierRuleRegistry tierRules = new TierRuleRegistry(Map.of(
+            Tier.STANDARD, new StandardTierRule(),
+            Tier.SILVER, new SilverTierRule(),
+            Tier.GOLD, new GoldTierRule()));
+    private final SpendBonusRule spendBonus = new SpendBonusRule();
+
     private PointsCalculator calculator;
 
     @BeforeEach
     void setUp() {
-        TierRuleRegistry tierRules = new TierRuleRegistry(Map.of(
-                Tier.STANDARD, new StandardTierRule(),
-                Tier.SILVER, new SilverTierRule(),
-                Tier.GOLD, new GoldTierRule()));
-        calculator = new PointsCalculator(repository, tierRules, new SpendBonusRule());
+        calculator = new PointsCalculator(repository, tierRules, spendBonus);
     }
 
     @ParameterizedTest(name = "{0} spending GHS {1} earns {2} points")
@@ -88,6 +90,17 @@ class PointsCalculatorTest {
         assertEquals("unknown", exception.getMemberId());
     }
 
+    @ParameterizedTest(name = "member id \"{0}\" is rejected")
+    @NullSource
+    @ValueSource(strings = {"", "   "})
+    void rejectsMissingMemberIdWithoutLookingUpMember(String memberId) {
+        MemberNotFoundException exception = assertThrows(MemberNotFoundException.class,
+                () -> calculator.calculatePoints(memberId, ONE_HUNDRED));
+
+        assertEquals(memberId, exception.getMemberId());
+        verifyNoInteractions(repository);
+    }
+
     @ParameterizedTest(name = "GHS {0} is rejected")
     @NullSource
     @ValueSource(strings = {"-0.01", "-20", "1000000.01", "10.001"})
@@ -115,13 +128,31 @@ class PointsCalculatorTest {
         TierRuleRegistry standardOnly =
                 new TierRuleRegistry(Map.of(Tier.STANDARD, new StandardTierRule()));
         PointsCalculator calculatorWithoutGold =
-                new PointsCalculator(repository, standardOnly, new SpendBonusRule());
+                new PointsCalculator(repository, standardOnly, spendBonus);
         givenMemberWithTier(Tier.GOLD);
 
         UnsupportedTierException exception = assertThrows(UnsupportedTierException.class,
                 () -> calculatorWithoutGold.calculatePoints(MEMBER_ID, ONE_HUNDRED));
 
         assertEquals(Tier.GOLD, exception.getTier());
+    }
+
+    @Test
+    void rejectsNullRepository() {
+        assertThrows(NullPointerException.class,
+                () -> new PointsCalculator(null, tierRules, spendBonus));
+    }
+
+    @Test
+    void rejectsNullTierRules() {
+        assertThrows(NullPointerException.class,
+                () -> new PointsCalculator(repository, null, spendBonus));
+    }
+
+    @Test
+    void rejectsNullSpendBonus() {
+        assertThrows(NullPointerException.class,
+                () -> new PointsCalculator(repository, tierRules, null));
     }
 
     private void givenMemberWithTier(Tier tier) {

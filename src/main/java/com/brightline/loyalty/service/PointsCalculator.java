@@ -8,6 +8,7 @@ import com.brightline.loyalty.rule.bonus.SpendBonusRule;
 import com.brightline.loyalty.rule.tier.TierRuleRegistry;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.util.Objects;
 
 public class PointsCalculator {
 
@@ -21,9 +22,9 @@ public class PointsCalculator {
 
     public PointsCalculator(MemberRepository repository, TierRuleRegistry tierRules,
                             SpendBonusRule spendBonus) {
-        this.repository = repository;
-        this.tierRules = tierRules;
-        this.spendBonus = spendBonus;
+        this.repository = Objects.requireNonNull(repository, "Member repository must not be null");
+        this.tierRules = Objects.requireNonNull(tierRules, "Tier rules must not be null");
+        this.spendBonus = Objects.requireNonNull(spendBonus, "Spend bonus rule must not be null");
     }
 
     public int calculatePoints(String memberId, BigDecimal amount) {
@@ -52,6 +53,9 @@ public class PointsCalculator {
     }
 
     private Member findMember(String memberId) {
+        if (memberId == null || memberId.isBlank()) {
+            throw new MemberNotFoundException(memberId);
+        }
         return repository.findById(memberId)
                 .orElseThrow(() -> new MemberNotFoundException(memberId));
     }

@@ -43,4 +43,17 @@ class TierRuleRegistryTest {
 
         assertThrows(UnsupportedTierException.class, () -> registry.ruleFor(Tier.GOLD));
     }
+
+    @Test
+    void rejectsNullRuleMap() {
+        assertThrows(NullPointerException.class, () -> new TierRuleRegistry(null));
+    }
+
+    @Test
+    void rejectsNullRuleForTier() {
+        Map<Tier, TierRule> source = new EnumMap<>(Tier.class);
+        source.put(Tier.GOLD, null);
+
+        assertThrows(NullPointerException.class, () -> new TierRuleRegistry(source));
+    }
 }
