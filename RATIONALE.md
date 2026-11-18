@@ -4,16 +4,16 @@
 
 | | Before (`before-refactor.txt`) | After (`after-refactor.txt`) |
 |---|---|---|
-| Test classes | 1 | 7 |
-| Tests | 3 | 43 |
-| Tests that could fail if the code were wrong | 1, and only weakly | 43 |
-| PIT mutants killed in business code | not measured | 27 of 27 |
+| Test classes | 1 | 8 |
+| Tests | 3 | 59 |
+| Tests that could fail if the code were wrong | 1, and only weakly | 59 |
+| PIT mutants killed in business code | not measured | 30 of 30 |
 
 The scheme's rules did not change: one point per full GHS 10, SILVER ×1.5 rounded down, GOLD ×2,
 and a 50 point bonus above GHS 500. The demo's purchases (m1 GHS 100, m2 GHS 250, m3 GHS 200) give
-the same points as before the refactor. What changed is failure handling: an unknown member, or an
-amount that is null, negative, above GHS 1,000,000 or has more than two decimal places, is now
-rejected with a reason instead of returning 0 or being accepted.
+the same points as before the refactor. What changed is failure handling: a missing or unknown
+member, or an amount that is null, negative, above GHS 1,000,000 or has more than two decimal
+places, is now rejected with a reason instead of returning 0 or being accepted.
 
 ## Key decisions
 
@@ -67,6 +67,30 @@ is gone (§4.4), and the comments that restated the code are deleted (§10.1).
 Code is split into `model`, `repository`, `service`, `exception`, `rule.tier` and `rule.bonus`.
 Tests mirror the same packages.
 
+### 6. Reject invalid objects when they are built
+
+An invalid object should fail where it is created, not crash somewhere later with a
+`NullPointerException` that points at the wrong line.
+
+- `Member` checks its fields in the record's compact constructor: the id and name must not be null
+  or blank, and the tier must not be null. No invalid `Member` can exist.
+- `PointsCalculator` and `TierRuleRegistry` reject null collaborators and null rules with
+  `Objects.requireNonNull` and a message naming what is missing.
+- A null or blank member id is rejected with `MemberNotFoundException` before the repository is
+  called.
+
+Null and blank checks on objects being built are programming errors, so they use the JDK's
+`NullPointerException` and `IllegalArgumentException`. Bad input for a purchase is a business
+failure, so it uses the `LoyaltyException` types that `Demo` handles.
+
+### 7. Make failures observable at the boundary
+
+`Demo` logs every rejected purchase at `WARNING` with the member, amount and reason, using
+`java.util.logging` so there is no new dependency. Any other runtime failure, such as the
+repository being unavailable, is caught at this top level and logged at `SEVERE` with its stack
+trace, so one bad purchase does not crash the run. Logging stays at the program boundary: the
+calculator has no side effects (§4.4).
+
 ## How the design absorbs the new tier
 
 Adding a tier, for example PLATINUM at ×3:
@@ -96,8 +120,8 @@ instead of quietly awarding the wrong points.
 | Points rules (rates, bonus, rounding down) | Kept | They are the business behaviour. The tests now pin them down with exact values |
 | `MemberRepository` interface | Kept, fixed | The abstraction was right. It returned `null`, so it now returns `Optional<Member>` |
 | `InMemoryMemberRepository` and its seed data | Kept | Useful for the demo and its own tests. Seeding now uses `Tier` values |
-| `Member` | Fixed | String tier became an enum, and the getter-only class became a record |
-| `Demo` | Fixed | It now wires the dependencies and reports rejections instead of printing 0 |
+| `Member` | Fixed | String tier became an enum, the getter-only class became a record, and it rejects missing fields |
+| `Demo` | Fixed | It now wires the dependencies, and reports and logs rejections instead of printing 0 |
 | `PointsCalculator` | Rewritten inside | Same public purpose. Its jobs were moved out into rules, and it no longer swallows errors |
 | Tier if/else chain | Rewritten | Replaced by `TierRule` classes and the registry |
 | `calculatesGoldPoints` test | Deleted | It mocked the class under test, so no real code ran and it could never fail |
@@ -113,13 +137,15 @@ instead of quietly awarding the wrong points.
 - Cases cover each tier, SILVER rounding, amounts below one point, the bonus boundary (500 gets no
   bonus, 500.01 does), the amount cap, each kind of rejected amount, unknown members, a repository
   failure passing through unchanged, and a tier with no rule.
-- The invalid-amount test also verifies the repository is never called, so validation happens
-  before any lookup.
+- The invalid-amount and missing-member-id tests also verify the repository is never called, so
+  validation happens before any lookup.
+- `Member`, the calculator and the registry each have tests for every null or blank input they
+  reject.
 - Parameterized tests keep each case to one line of data instead of copied test methods.
 
-PIT mutation testing killed all 27 mutants in the business code, including `>` changed to `>=`
-on the bonus, which the original tests would have let through. The 9 mutants with no coverage are
-all `println` calls in `Demo`, the console runner, which has no business logic.
+PIT mutation testing killed all 30 mutants in the business code, including `>` changed to `>=`
+on the bonus, which the original tests would have let through. The 10 mutants with no coverage
+are all in `Demo`, the console runner, which only prints and logs and has no business logic.
 
 ## Improvement beyond the brief: a money guard
 
