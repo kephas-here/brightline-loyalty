@@ -4,10 +4,10 @@
 
 | | Before (`before-refactor.txt`) | After (`after-refactor.txt`) |
 |---|---|---|
-| Test classes | 1 | 8 |
-| Tests | 3 | 59 |
-| Tests that could fail if the code were wrong | 1, and only weakly | 59 |
-| PIT mutants killed in business code | not measured | 30 of 30 |
+| Test classes | 1 | 9 |
+| Tests | 3 | 73 |
+| Tests that could fail if the code were wrong | 1, and only weakly | 73 |
+| PIT mutants killed in business code | not measured | 30 of 30, all 77 lines covered |
 
 The scheme's rules did not change: one point per full GHS 10, SILVER ×1.5 rounded down, GOLD ×2,
 and a 50 point bonus above GHS 500. The demo's purchases (m1 GHS 100, m2 GHS 250, m3 GHS 200) give
@@ -47,10 +47,14 @@ class depends on.
 The tier multipliers were an if/else chain on Strings. I replaced it with the Strategy pattern:
 
 - `TierRule` is an interface with `calculateTierPoints(int basePoints)`.
-- `StandardTierRule`, `SilverTierRule` and `GoldTierRule` each implement it.
+- `StandardTierRule`, `SilverTierRule` and `GoldTierRule` each implement it. They use integer
+  maths: SILVER is `basePoints * 3 / 2`, so no floating-point value enters a points calculation,
+  and GOLD uses `Math.multiplyExact`, so an overflow throws instead of wrapping negative.
 - `TierRuleRegistry` holds an `EnumMap` from `Tier` to its rule. The calculator asks it for the
   rule for the member's tier. There is no if/else chain, and a tier with no rule throws
   `UnsupportedTierException` instead of silently getting no multiplier.
+- `LoyaltyConfiguration` is the one place the rules are registered and the calculator is wired.
+  `Demo` and the tests both use it, so there is no second copy of the registration to drift.
 
 `Tier` became an enum and `Member` a record, so an invalid tier is a compile error rather than a
 typo that compiles.
@@ -64,8 +68,8 @@ is gone (§4.4), and the comments that restated the code are deleted (§10.1).
 
 ### 5. Organise by layer
 
-Code is split into `model`, `repository`, `service`, `exception`, `rule.tier` and `rule.bonus`.
-Tests mirror the same packages.
+Code is split into `model`, `repository`, `service`, `exception`, `rule.tier`, `rule.bonus` and
+`config`. Tests mirror the same packages.
 
 ### 6. Reject invalid objects when they are built
 
@@ -85,11 +89,12 @@ failure, so it uses the `LoyaltyException` types that `Demo` handles.
 
 ### 7. Make failures observable at the boundary
 
-`Demo` logs every rejected purchase at `WARNING` with the member, amount and reason, using
-`java.util.logging` so there is no new dependency. Any other runtime failure, such as the
-repository being unavailable, is caught at this top level and logged at `SEVERE` with its stack
-trace, so one bad purchase does not crash the run. Logging stays at the program boundary: the
-calculator has no side effects (§4.4).
+`Demo` reports every outcome through one channel, `java.util.logging`, so there is no new
+dependency and no mix of printing and logging: results at `INFO`, rejected purchases at `WARNING`
+with the member, amount and reason. Any other runtime failure, such as the repository being
+unavailable, is caught at this top level and logged at `SEVERE` with its stack trace, so one bad
+purchase does not crash the run. Logging stays at the program boundary: the calculator has no
+side effects (§4.4).
 
 ## How the design absorbs the new tier
 
@@ -97,12 +102,13 @@ Adding a tier, for example PLATINUM at ×3:
 
 1. Add `PLATINUM` to the `Tier` enum.
 2. Add `PlatinumTierRule implements TierRule`.
-3. Add `Tier.PLATINUM, new PlatinumTierRule()` where the registry is built.
+3. Add `Tier.PLATINUM, new PlatinumTierRule()` in `LoyaltyConfiguration.tierRuleRegistry()`.
 4. Add a `PlatinumTierRuleTest`.
 
-`PointsCalculator`, `TierRuleRegistry` and the existing rules do not change (§12.2). If step 3 is
-forgotten, the first PLATINUM purchase fails with `UnsupportedTierException` naming the tier,
-instead of quietly awarding the wrong points.
+The one registration line is the only existing code that changes. `PointsCalculator`,
+`TierRuleRegistry` and the existing rules stay as they are (§12.2). If step 3 is forgotten,
+`LoyaltyConfigurationTest` fails because it checks that every `Tier` has a rule, so the mistake is
+caught by the build instead of by the first PLATINUM purchase.
 
 ## Alternatives I considered
 
@@ -121,7 +127,7 @@ instead of quietly awarding the wrong points.
 | `MemberRepository` interface | Kept, fixed | The abstraction was right. It returned `null`, so it now returns `Optional<Member>` |
 | `InMemoryMemberRepository` and its seed data | Kept | Useful for the demo and its own tests. Seeding now uses `Tier` values |
 | `Member` | Fixed | String tier became an enum, the getter-only class became a record, and it rejects missing fields |
-| `Demo` | Fixed | It now wires the dependencies, and reports and logs rejections instead of printing 0 |
+| `Demo` | Fixed | It now gets its calculator from `LoyaltyConfiguration` and logs every outcome, including rejections, instead of printing 0 |
 | `PointsCalculator` | Rewritten inside | Same public purpose. Its jobs were moved out into rules, and it no longer swallows errors |
 | Tier if/else chain | Rewritten | Replaced by `TierRule` classes and the registry |
 | `calculatesGoldPoints` test | Deleted | It mocked the class under test, so no real code ran and it could never fail |
@@ -141,11 +147,15 @@ instead of quietly awarding the wrong points.
   validation happens before any lookup.
 - `Member`, the calculator and the registry each have tests for every null or blank input they
   reject.
+- The tier and bonus interaction is covered: SILVER at GHS 500.01 earns 125 points and at GHS 600
+  earns 140. Each tier rule is tested with large values and with the overflow case.
+- `LoyaltyConfigurationTest` checks that every `Tier` has a rule and that each tier maps to its own
+  rule class.
 - Parameterized tests keep each case to one line of data instead of copied test methods.
 
-PIT mutation testing killed all 30 mutants in the business code, including `>` changed to `>=`
-on the bonus, which the original tests would have let through. The 10 mutants with no coverage
-are all in `Demo`, the console runner, which only prints and logs and has no business logic.
+PIT mutation testing killed all 30 mutants in the business code and covered all 77 lines,
+including `>` changed to `>=` on the bonus, which the original tests would have let through.
+`Demo`, the console runner, is excluded from PIT because it only logs and has no business logic.
 
 ## Improvement beyond the brief: a money guard
 

@@ -27,16 +27,16 @@ accepted each change.
 
 ## 3. What I verified, and how
 
-- **Behaviour:** I ran `mvn test` after every change and before every commit. The final run is 59
+- **Behaviour:** I ran `mvn test` after every change and before every commit. The final run is 73
   tests, 0 failures (`after-refactor.txt`, against 3 tests in `before-refactor.txt`).
 - **Points stayed the same:** I ran the demo after each refactoring step and checked that m1 GHS 100,
   m2 GHS 250 and m3 GHS 200 still gave 10, 50 and 30 points, the same as the starter code.
-- **The tests catch bugs:** PIT killed 30 of 30 mutants in the business code, including `>`
-  changed to `>=` on the bonus. All 10 uncovered mutants are in `Demo`, which only prints.
+- **The tests catch bugs:** PIT killed 30 of 30 mutants in the business code and covered all 77
+  lines, including `>` changed to `>=` on the bonus. `Demo` is excluded because it only logs.
 - **Every commit builds:** where one change was split into two commits, the first was built in a
   separate checkout before the second was made.
 - **Docs match the code:** I checked the README's run command by running it, its layout tree
-  against the 24 source files, and the line-length rule (100 characters) with a scan.
+  against the 26 source files, and the line-length rule (100 characters) with a scan.
 
 ## 4. What I rejected or corrected
 
@@ -53,8 +53,9 @@ accepted each change.
 - **Noise comments.** It added a Javadoc block to `LoyaltyException` that only restated the class
   name. I removed it (§10.1).
 - **Scope I chose not to take.** It proposed a characterization test containing a copy of the
-  original formula, and a startup check in the registry. I rejected both to keep the change focused,
-  and kept the existing exact-value tests as the evidence for unchanged behaviour.
+  original formula. I rejected it to keep the change focused, and kept the exact-value tests as the
+  evidence for unchanged behaviour. It also proposed a startup check inside the registry; I chose
+  `LoyaltyConfigurationTest` instead, which catches a missing tier registration at build time.
 - **Overstated claims.** Its first drafts said coverage "would look high" on the bonus line (the
   line was actually uncovered) and that the demo matched "for every valid purchase" (only three
   purchases were compared). Both were corrected to say exactly what was checked.

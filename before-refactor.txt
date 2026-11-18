@@ -6,16 +6,16 @@
 [INFO] --------------------------------[ jar ]---------------------------------
 [INFO] 
 [INFO] --- jacoco:0.8.12:prepare-agent (prepare-agent) @ brightline-loyalty ---
-[INFO] argLine set to "-javaagent:C:\\Users\\KephasTetteh\\.m2\\repository\\org\\jacoco\\org.jacoco.agent\\0.8.12\\org.jacoco.agent-0.8.12-runtime.jar=destfile=C:\\Users\\KephasTetteh\\Desktop\\AMALITECH-NSS\\Code Quality\\code-quality-a-brightline-loyalty\\target\\jacoco.exec"
+[INFO] argLine set to "-javaagent:<maven-repo>\\repository\\org\\jacoco\\org.jacoco.agent\\0.8.12\\org.jacoco.agent-0.8.12-runtime.jar=destfile=<project>\\target\\jacoco.exec"
 [INFO] 
 [INFO] --- resources:3.4.0:resources (default-resources) @ brightline-loyalty ---
-[INFO] skip non existing resourceDirectory C:\Users\KephasTetteh\Desktop\AMALITECH-NSS\Code Quality\code-quality-a-brightline-loyalty\src\main\resources
+[INFO] skip non existing resourceDirectory <project>\src\main\resources
 [INFO] 
 [INFO] --- compiler:3.15.0:compile (default-compile) @ brightline-loyalty ---
 [INFO] Nothing to compile - all classes are up to date.
 [INFO] 
 [INFO] --- resources:3.4.0:testResources (default-testResources) @ brightline-loyalty ---
-[INFO] skip non existing resourceDirectory C:\Users\KephasTetteh\Desktop\AMALITECH-NSS\Code Quality\code-quality-a-brightline-loyalty\src\test\resources
+[INFO] skip non existing resourceDirectory <project>\src\test\resources
 [INFO] 
 [INFO] --- compiler:3.15.0:testCompile (default-testCompile) @ brightline-loyalty ---
 [INFO] Nothing to compile - all classes are up to date.
@@ -30,7 +30,7 @@
 Awarded 10 points to Kofi Mensah
 Awarded 30 points to Yaa Boateng
 Mockito is currently self-attaching to enable the inline-mock-maker. This will no longer work in future releases of the JDK. Please add Mockito as an agent to your build as described in Mockito's documentation: https://javadoc.io/doc/org.mockito/mockito-core/latest/org.mockito/org/mockito/Mockito.html#0.3
-WARNING: A Java agent has been loaded dynamically (C:\Users\KephasTetteh\.m2\repository\net\bytebuddy\byte-buddy-agent\1.17.5\byte-buddy-agent-1.17.5.jar)
+WARNING: A Java agent has been loaded dynamically (<maven-repo>\repository\net\bytebuddy\byte-buddy-agent\1.17.5\byte-buddy-agent-1.17.5.jar)
 WARNING: If a serviceability tool is in use, please run with -XX:+EnableDynamicAgentLoading to hide this warning
 WARNING: If a serviceability tool is not in use, please run with -Djdk.instrument.traceUsage for more information
 WARNING: Dynamic loading of agents will be disallowed by default in a future release

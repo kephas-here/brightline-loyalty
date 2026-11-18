@@ -11,7 +11,9 @@ AmaliTech Coding Standards, with a test suite that would catch a real bug.
 | [RATIONALE.md](RATIONALE.md) | Why each refactoring decision was made, how the new tier fits in, what was kept, fixed or rewritten, and the improvement beyond the brief |
 | [AI-USAGE.md](AI-USAGE.md) | Which AI tools were used and for what, what was verified and how, and what was rejected or corrected |
 | [before-refactor.txt](before-refactor.txt) | `mvn test` on the untouched starter code: 3 tests |
-| [after-refactor.txt](after-refactor.txt) | `mvn test` on the refactored code: 59 tests |
+| [after-refactor.txt](after-refactor.txt) | `mvn test` on the refactored code: 73 tests |
+
+Local file paths in both test outputs are replaced with `<project>` and `<maven-repo>`.
 
 ## Points rules
 
@@ -38,11 +40,19 @@ If the exec plugin is unavailable, run the demo from the compiled classes after 
 java -cp target/classes com.brightline.loyalty.Demo
 ```
 
+`Demo` is the logging boundary. It reports every outcome through `java.util.logging`: results at
+`INFO`, rejected purchases at `WARNING`, and unexpected failures at `SEVERE` with the stack trace.
+The service classes do not log or print.
+
+PIT excludes `Demo`, so its mutation score covers only the business code.
+
 ## Project layout
 
 ```
 src/main/java/com/brightline/loyalty/
-├── Demo.java                          wires the service and runs sample purchases
+├── Demo.java                          runs sample purchases and logs each outcome
+├── config/
+│   └── LoyaltyConfiguration.java      the one place tier rules are registered and the calculator is wired
 ├── exception/
 │   ├── LoyaltyException.java          unchecked base for all loyalty failures
 │   ├── InvalidPurchaseException.java
@@ -67,6 +77,7 @@ src/main/java/com/brightline/loyalty/
     └── PointsCalculator.java          validate, find member, apply tier rule, add bonus
 
 src/test/java/com/brightline/loyalty/
+├── config/LoyaltyConfigurationTest.java   fails if any Tier has no registered rule
 ├── model/MemberTest.java
 ├── repository/InMemoryMemberRepositoryTest.java
 ├── rule/bonus/SpendBonusRuleTest.java
@@ -82,7 +93,9 @@ src/test/java/com/brightline/loyalty/
 
 1. Add the tier to `Tier`.
 2. Add a class that implements `TierRule`.
-3. Register it where the `TierRuleRegistry` is built (in `Demo`).
+3. Register it with one line in `LoyaltyConfiguration.tierRuleRegistry()`.
 4. Add a test for the new rule.
 
-No existing class changes. See [RATIONALE.md](RATIONALE.md) for the reasoning.
+The registration line is the only existing code that changes. The calculator, the registry and
+the other rules stay as they are. If step 3 is forgotten, `LoyaltyConfigurationTest` fails. See
+[RATIONALE.md](RATIONALE.md) for the reasoning.
