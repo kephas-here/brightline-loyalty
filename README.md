@@ -9,6 +9,7 @@ AmaliTech Coding Standards, with a test suite that would catch a real bug.
 |---|---|
 | [ANALYSIS.md](ANALYSIS.md) | What was wrong with the inherited code and tests, written before any change, with the most serious problem ranked first |
 | [RATIONALE.md](RATIONALE.md) | Why each refactoring decision was made, how the new tier fits in, what was kept, fixed or rewritten, and the improvement beyond the brief |
+| [AI-USAGE.md](AI-USAGE.md) | Which AI tools were used and for what, what was verified and how, and what was rejected or corrected |
 | [before-refactor.txt](before-refactor.txt) | `mvn test` on the untouched starter code: 3 tests |
 | [after-refactor.txt](after-refactor.txt) | `mvn test` on the refactored code: 59 tests |
 
