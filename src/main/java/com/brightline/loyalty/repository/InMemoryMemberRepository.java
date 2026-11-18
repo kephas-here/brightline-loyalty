@@ -1,5 +1,6 @@
-package com.brightline.loyalty;
+package com.brightline.loyalty.repository;
 
+import com.brightline.loyalty.model.Member;
 import java.util.HashMap;
 import java.util.Map;
 

@@ -1,4 +1,4 @@
-package com.brightline.loyalty;
+package com.brightline.loyalty.model;
 
 public class Member {
     private final String id;

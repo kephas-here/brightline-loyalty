@@ -1,5 +1,6 @@
-package com.brightline.loyalty;
+package com.brightline.loyalty.service;
 
+import com.brightline.loyalty.repository.InMemoryMemberRepository;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;

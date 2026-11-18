@@ -1,5 +1,8 @@
 package com.brightline.loyalty;
 
+import com.brightline.loyalty.repository.InMemoryMemberRepository;
+import com.brightline.loyalty.service.PointsCalculator;
+
 // A tiny runner so you can see the calculator work before you change anything.
 public class Demo {
     public static void main(String[] args) {

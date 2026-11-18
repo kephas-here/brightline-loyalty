@@ -1,4 +1,7 @@
-package com.brightline.loyalty;
+package com.brightline.loyalty.service;
+
+import com.brightline.loyalty.model.Member;
+import com.brightline.loyalty.repository.MemberRepository;
 
 public class PointsCalculator {
 
