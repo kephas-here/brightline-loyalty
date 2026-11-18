@@ -3,6 +3,7 @@ package com.brightline.loyalty;
 import com.brightline.loyalty.exception.LoyaltyException;
 import com.brightline.loyalty.model.Tier;
 import com.brightline.loyalty.repository.InMemoryMemberRepository;
+import com.brightline.loyalty.rule.bonus.SpendBonusRule;
 import com.brightline.loyalty.rule.tier.GoldTierRule;
 import com.brightline.loyalty.rule.tier.SilverTierRule;
 import com.brightline.loyalty.rule.tier.StandardTierRule;
@@ -17,12 +18,13 @@ public class Demo {
                 Tier.STANDARD, new StandardTierRule(),
                 Tier.SILVER, new SilverTierRule(),
                 Tier.GOLD, new GoldTierRule()));
-        PointsCalculator calculator =
-                new PointsCalculator(new InMemoryMemberRepository(), tierRules);
+        PointsCalculator calculator = new PointsCalculator(
+                new InMemoryMemberRepository(), tierRules, new SpendBonusRule());
 
         printPoints(calculator, "m1", 100);
         printPoints(calculator, "m2", 250);
         printPoints(calculator, "m3", 200);
+        printPoints(calculator, "m2", 600);
         printPoints(calculator, "unknown", 100);
         printPoints(calculator, "m1", -20);
     }
