@@ -9,6 +9,7 @@ import com.brightline.loyalty.rule.tier.SilverTierRule;
 import com.brightline.loyalty.rule.tier.StandardTierRule;
 import com.brightline.loyalty.rule.tier.TierRuleRegistry;
 import com.brightline.loyalty.service.PointsCalculator;
+import java.math.BigDecimal;
 import java.util.Map;
 
 public class Demo {
@@ -21,17 +22,18 @@ public class Demo {
         PointsCalculator calculator = new PointsCalculator(
                 new InMemoryMemberRepository(), tierRules, new SpendBonusRule());
 
-        printPoints(calculator, "m1", 100);
-        printPoints(calculator, "m2", 250);
-        printPoints(calculator, "m3", 200);
-        printPoints(calculator, "m2", 600);
-        printPoints(calculator, "unknown", 100);
-        printPoints(calculator, "m1", -20);
+        printPoints(calculator, "m1", "100");
+        printPoints(calculator, "m2", "250");
+        printPoints(calculator, "m3", "200");
+        printPoints(calculator, "m2", "600");
+        printPoints(calculator, "unknown", "100");
+        printPoints(calculator, "m1", "-20");
+        printPoints(calculator, "m1", "10.001");
     }
 
-    private static void printPoints(PointsCalculator calculator, String memberId, double amount) {
+    private static void printPoints(PointsCalculator calculator, String memberId, String amount) {
         try {
-            int points = calculator.calculatePoints(memberId, amount);
+            int points = calculator.calculatePoints(memberId, new BigDecimal(amount));
             System.out.println(memberId + ", GHS " + amount + " -> " + points + " points");
         } catch (LoyaltyException e) {
             System.out.println(memberId + ", GHS " + amount + " -> rejected: " + e.getMessage());

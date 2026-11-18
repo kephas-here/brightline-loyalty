@@ -1,44 +1,131 @@
 package com.brightline.loyalty.service;
 
+import com.brightline.loyalty.exception.InvalidPurchaseException;
+import com.brightline.loyalty.exception.MemberNotFoundException;
+import com.brightline.loyalty.exception.UnsupportedTierException;
+import com.brightline.loyalty.model.Member;
 import com.brightline.loyalty.model.Tier;
-import com.brightline.loyalty.repository.InMemoryMemberRepository;
+import com.brightline.loyalty.repository.MemberRepository;
 import com.brightline.loyalty.rule.bonus.SpendBonusRule;
 import com.brightline.loyalty.rule.tier.GoldTierRule;
 import com.brightline.loyalty.rule.tier.SilverTierRule;
 import com.brightline.loyalty.rule.tier.StandardTierRule;
 import com.brightline.loyalty.rule.tier.TierRuleRegistry;
+import java.math.BigDecimal;
 import java.util.Map;
+import java.util.Optional;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.NullSource;
+import org.junit.jupiter.params.provider.ValueSource;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.when;
 
+@ExtendWith(MockitoExtension.class)
 class PointsCalculatorTest {
 
-    private final TierRuleRegistry tierRules = new TierRuleRegistry(Map.of(
-            Tier.STANDARD, new StandardTierRule(),
-            Tier.SILVER, new SilverTierRule(),
-            Tier.GOLD, new GoldTierRule()));
+    private static final String MEMBER_ID = "m1";
+    private static final BigDecimal ONE_HUNDRED = new BigDecimal("100");
 
-    @Test
-    void awardsPointsToAMember() {
-        PointsCalculator calculator = new PointsCalculator(new InMemoryMemberRepository(), tierRules, new SpendBonusRule());
-        int points = calculator.calculatePoints("m1", 100.0);
-        assertTrue(points > 0); // it awarded some points
+    @Mock
+    private MemberRepository repository;
+
+    private PointsCalculator calculator;
+
+    @BeforeEach
+    void setUp() {
+        TierRuleRegistry tierRules = new TierRuleRegistry(Map.of(
+                Tier.STANDARD, new StandardTierRule(),
+                Tier.SILVER, new SilverTierRule(),
+                Tier.GOLD, new GoldTierRule()));
+        calculator = new PointsCalculator(repository, tierRules, new SpendBonusRule());
+    }
+
+    @ParameterizedTest(name = "{0} spending GHS {1} earns {2} points")
+    @CsvSource({
+        "STANDARD, 100,     10",
+        "SILVER,   200,     30",
+        "GOLD,     250,     50",
+        "SILVER,   150,     22",
+        "STANDARD, 19.99,   1",
+        "STANDARD, 69.99,   6",
+        "STANDARD, 70.00,   7",
+        "STANDARD, 500,     50",
+        "STANDARD, 500.01,  100",
+        "GOLD,     600,     170",
+        "GOLD,     1000000, 200050"
+    })
+    void awardsPointsForTierAndAmount(Tier tier, BigDecimal amount, int expectedPoints) {
+        givenMemberWithTier(tier);
+
+        assertEquals(expectedPoints, calculator.calculatePoints(MEMBER_ID, amount));
+    }
+
+    @ParameterizedTest(name = "GHS {0} earns no points")
+    @ValueSource(strings = {"0", "9.99"})
+    void awardsNoPointsBelowOnePointOfSpend(BigDecimal amount) {
+        givenMemberWithTier(Tier.GOLD);
+
+        assertEquals(0, calculator.calculatePoints(MEMBER_ID, amount));
     }
 
     @Test
-    void calculatesGoldPoints() {
-        // mock the calculator and check it returns what we told it to
-        PointsCalculator calculator = mock(PointsCalculator.class);
-        when(calculator.calculatePoints("m2", 250.0)).thenReturn(50);
-        assertEquals(50, calculator.calculatePoints("m2", 250.0));
+    void throwsMemberNotFoundForUnknownMember() {
+        when(repository.findById("unknown")).thenReturn(Optional.empty());
+
+        MemberNotFoundException exception = assertThrows(MemberNotFoundException.class,
+                () -> calculator.calculatePoints("unknown", ONE_HUNDRED));
+
+        assertEquals("unknown", exception.getMemberId());
+    }
+
+    @ParameterizedTest(name = "GHS {0} is rejected")
+    @NullSource
+    @ValueSource(strings = {"-0.01", "-20", "1000000.01", "10.001"})
+    void rejectsInvalidAmountWithoutLookingUpMember(BigDecimal amount) {
+        InvalidPurchaseException exception = assertThrows(InvalidPurchaseException.class,
+                () -> calculator.calculatePoints(MEMBER_ID, amount));
+
+        assertEquals(amount, exception.getAmount());
+        verifyNoInteractions(repository);
     }
 
     @Test
-    void awardsPointsForAPurchase() {
-        PointsCalculator calculator = new PointsCalculator(new InMemoryMemberRepository(), tierRules, new SpendBonusRule());
-        int points = calculator.calculatePoints("m3", 200.0);
-        assertNotNull(points); // a result came back
+    void propagatesRepositoryFailureUnchanged() {
+        IllegalStateException failure = new IllegalStateException("database unavailable");
+        when(repository.findById(MEMBER_ID)).thenThrow(failure);
+
+        IllegalStateException thrown = assertThrows(IllegalStateException.class,
+                () -> calculator.calculatePoints(MEMBER_ID, ONE_HUNDRED));
+
+        assertSame(failure, thrown);
+    }
+
+    @Test
+    void throwsUnsupportedTierWhenTierHasNoRule() {
+        TierRuleRegistry standardOnly =
+                new TierRuleRegistry(Map.of(Tier.STANDARD, new StandardTierRule()));
+        PointsCalculator calculatorWithoutGold =
+                new PointsCalculator(repository, standardOnly, new SpendBonusRule());
+        givenMemberWithTier(Tier.GOLD);
+
+        UnsupportedTierException exception = assertThrows(UnsupportedTierException.class,
+                () -> calculatorWithoutGold.calculatePoints(MEMBER_ID, ONE_HUNDRED));
+
+        assertEquals(Tier.GOLD, exception.getTier());
+    }
+
+    private void givenMemberWithTier(Tier tier) {
+        Member member = new Member(MEMBER_ID, "Kofi Mensah", tier);
+        when(repository.findById(MEMBER_ID)).thenReturn(Optional.of(member));
     }
 }
