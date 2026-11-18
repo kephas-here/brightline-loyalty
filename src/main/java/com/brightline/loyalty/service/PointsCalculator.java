@@ -1,6 +1,7 @@
 package com.brightline.loyalty.service;
 
 import com.brightline.loyalty.model.Member;
+import com.brightline.loyalty.model.Tier;
 import com.brightline.loyalty.repository.MemberRepository;
 
 public class PointsCalculator {
@@ -19,11 +20,11 @@ public class PointsCalculator {
             int points = (int) (amount / 10);
 
             // apply the member's tier multiplier
-            if (member.getTier().equals("STANDARD")) {
+            if (member.tier() == Tier.STANDARD) {
                 points = points * 1;
-            } else if (member.getTier().equals("SILVER")) {
+            } else if (member.tier() == Tier.SILVER) {
                 points = (int) (points * 1.5);
-            } else if (member.getTier().equals("GOLD")) {
+            } else if (member.tier() == Tier.GOLD) {
                 points = points * 2;
             }
 
@@ -32,7 +33,7 @@ public class PointsCalculator {
                 points = points + 50;
             }
 
-            System.out.println("Awarded " + points + " points to " + member.getName());
+            System.out.println("Awarded " + points + " points to " + member.name());
             return points;
         } catch (Exception e) {
             // something went wrong (for example the member was not found) - award nothing
