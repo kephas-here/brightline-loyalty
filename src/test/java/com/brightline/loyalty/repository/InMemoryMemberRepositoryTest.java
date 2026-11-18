@@ -22,4 +22,9 @@ class InMemoryMemberRepositoryTest {
     void returnsEmptyForUnknownId() {
         assertTrue(repository.findById("unknown").isEmpty());
     }
+
+    @Test
+    void returnsEmptyForNullId() {
+        assertTrue(repository.findById(null).isEmpty());
+    }
 }

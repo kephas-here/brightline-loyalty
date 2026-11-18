@@ -59,6 +59,8 @@ class PointsCalculatorTest {
         "STANDARD, 70.00,   7",
         "STANDARD, 500,     50",
         "STANDARD, 500.01,  100",
+        "SILVER,   500.01,  125",
+        "SILVER,   600,     140",
         "GOLD,     600,     170",
         "GOLD,     1000000, 200050"
     })
