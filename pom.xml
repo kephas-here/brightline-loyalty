@@ -103,6 +103,9 @@
                     <targetTests>
                         <param>com.brightline.loyalty.*</param>
                     </targetTests>
+                    <excludedClasses>
+                        <param>com.brightline.loyalty.Demo</param>
+                    </excludedClasses>
                 </configuration>
             </plugin>
         </plugins>
